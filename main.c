@@ -1,20 +1,24 @@
 #include <stdio.h>
+#include <stdlib.h>
 
-/* Declare a buffer for user input of size 2048 */
-static char input[2028];
+#include <editline/readline.h>
+#include <editline/history.h>
 
 int main(int argc, char** argv) {
-  
-  /* Print Version and Exit Information */
-  puts("Torino Version 0.0.0.0.1");
-  puts("Press Ctrl+c to Exit\n");
 
-  while(1) {
-    fputs("torino> ", stdout);
-    fgets(input, 2048, stdin);
+	/* Print Version and Exit Information */
+	puts("Torino Version 0.0.0.0.1");
+	puts("Press Ctrl+c to Exit\n");
 
-    printf("No, you are a %s", input);
-  }
+	while(1) {
+		char* input = readline("torino> ");
 
-  return 0;
+		add_history(input);
+
+		printf("No, you are a %s\n", input);
+
+		free(input);
+	}
+
+	return 0;
 }
