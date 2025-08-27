@@ -5,12 +5,7 @@
 #include <editline/history.h>
 
 #include "mpc.h"
-
-long eval(mpc_ast_t* t) {
-	if(strstr(t->tag, "number")) {
-		return atoi(t->contents);
-	}
-}
+#include "eval.h"
 
 int main(int argc, char** argv) {
 	mpc_parser_t* Number = mpc_new("number");
@@ -21,7 +16,8 @@ int main(int argc, char** argv) {
 	mpca_lang(MPCA_LANG_DEFAULT,
 		"								\
 		  number	: /-?[0-9]+/ ;					\
-		  operator	: '+' | '-' | '*' | '/' ;			\
+		  operator	: '+' | '-' | '*' | '/' | '%' |			\
+				  \"add\" | \"sub\" | \"max\" | \"min\"; 	\
 		  expr		: <number> | '(' <operator> <expr>+ ')' ;	\
 		  torino	: /^/ <operator> <expr>+ /$/ ;			\
 		",
@@ -37,7 +33,8 @@ int main(int argc, char** argv) {
 
 		mpc_result_t r;
 		if (mpc_parse("<stdin>", input, Torino, &r)) {
-			mpc_ast_print(r.output);
+			long result = eval(r.output);
+			printf("%li\n", result);
 			mpc_ast_delete(r.output);
 		} else {
 			mpc_err_print(r.error);

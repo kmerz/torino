@@ -1,6 +1,5 @@
 CC = gcc
-HEADERS = mpc.h
-objects = main.o mpc.o
+objects = main.o mpc.o eval.o
 
 default: torino
 
