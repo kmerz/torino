@@ -1,12 +1,14 @@
-HEADERS = 
+CC = gcc
+HEADERS = mpc.h
+objects = main.o mpc.o
 
 default: torino
 
-main.o: main.c $(HEADERS)
-	    gcc -c main.c -o main.o
+$(objects): %.o: %.c 
+	    $(CC) -g -c $^ -o $@
 
-torino: main.o
-	    gcc -std=c99 -Wall main.o -o torino -l readline
+all: $(objects)
+	    $(CC) -std=c99 -Wall $(objects) -o torino -l readline
 
 clean:
 	    -rm -f main.o
