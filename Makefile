@@ -10,5 +10,5 @@ all: $(objects)
 	    $(CC) -std=c99 -Wall $(objects) -o torino -l readline
 
 clean:
-	    -rm -f main.o
+	    -rm -f $(objects) 
 	        -rm -f torino
