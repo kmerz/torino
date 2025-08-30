@@ -19,13 +19,14 @@ tval tval_err(int x) {
 
 void tval_print(tval v) {
   switch(v.type) {
-    case TVAL_NUM: printf("%lf", v.num); break;
+    case TVAL_NUM: printf("%ld", v.num); break;
     case TVAL_ERR:
       switch(v.err) {
 	case TERR_DIV_ZERO: printf("Error: Division By Zero!"); break;
 	case TERR_BAD_OP: printf("Error: Invalid Operator!"); break;
-	case TERR_BAD_NUM: priintf("Error: Invalid Number!"); break;
+	case TERR_BAD_NUM: printf("Error: Invalid Number!"); break;
       break;
+    }
   }
 }
 
@@ -33,12 +34,12 @@ void tval_println(tval v) { tval_print(v); putchar('\n'); }
 
 
 tval eval_min(tval x, tval y) {
-  if (x.num <= y.num) { return x.num; }
+  if (x.num <= y.num) { return x; }
   return y;
 }
 
-tval eval_max(tval x.num, tval y.num) {
-  if (x.num >= y.num) { return x.num; }
+tval eval_max(tval x, tval y) {
+  if (x.num >= y.num) { return x; }
   return y;
 }
 

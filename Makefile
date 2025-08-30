@@ -7,7 +7,7 @@ $(objects): %.o: %.c
 	    $(CC) -g -c $^ -o $@
 
 all: $(objects)
-	    $(CC) -std=c99 -Wall $(objects) -o torino -l readline
+	    $(CC) -std=c99 -Wall $(objects) -o torino -l edit
 
 clean:
 	    -rm -f $(objects) 
