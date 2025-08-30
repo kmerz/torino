@@ -1,14 +1,20 @@
 
-enum { TVAL_NUM, TVAL_ERR };
+enum { TVAL_NUM, TVAL_ERR, TVAL_SYM, TVAL_SEXPR };
 enum { TERR_DIV_ZERO, TERR_BAD_OP, TERR_BAD_NUM };
 
-typedef struct {
+typedef struct tval {
   int type;
   long num;
-  int err;
+  char* sym;
+  char* err;
+  int count;
+  struct tval** cell;
 } tval;
 
-tval eval(mpc_ast_t*);
+//tval eval(mpc_ast_t*);
 
-void tval_println(tval);
-void tval_print(tval);
+void tval_println(tval*);
+void tval_print(tval*);
+tval* tval_read(mpc_ast_t*);
+void tval_del(tval*);
+tval* tval_eval(tval*);
