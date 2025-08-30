@@ -33,8 +33,18 @@ tval* tval_sexpr(void) {
   v->type = TVAL_SEXPR;
   v->count = 0;
   v->cell = NULL;
-  v->err = NULL;
   v->sym = NULL;
+  v->err = NULL;
+  return v;
+}
+
+tval* tval_qexpr(void) {
+  tval* v = malloc(sizeof(tval));
+  v->type = TVAL_QEXPR;
+  v->count = 0;
+  v->cell = NULL;
+  v->sym = NULL;
+  v->err = NULL;
   return v;
 }
 
@@ -43,6 +53,7 @@ void tval_del(tval *v) {
     case TVAL_NUM: break;
     case TVAL_ERR: free(v->err); break;
     case TVAL_SYM: free(v->sym); break;
+    case TVAL_QEXPR:
     case TVAL_SEXPR: 
       for (int i = 0; i < v->count; i++) {
 	tval_del(v->cell[i]);
@@ -74,15 +85,21 @@ tval* tval_read(mpc_ast_t* t) {
   tval* x = NULL;
   if (strcmp(t->tag, ">") == 0 || strstr(t->tag, "sexpr")) {
     x = tval_sexpr();
-    for (int i = 0; i < t->children_num; i++) {
-      if (strcmp(t->children[i]->contents, "(") == 0 ||
-	  strcmp(t->children[i]->contents, ")") == 0 ||
-	  strcmp(t->children[i]->tag, "regex") == 0) {
-	continue;
-      }
-      x = tval_add(x, tval_read(t->children[i]));
+  }
+  if (strstr(t->tag, "qexpr")) {
+    x = tval_qexpr();
+  }
+
+  for (int i = 0; i < t->children_num; i++) {
+    if (strcmp(t->children[i]->contents, "(") == 0 ||
+        strcmp(t->children[i]->contents, ")") == 0 ||
+        strcmp(t->children[i]->contents, "{") == 0 ||
+        strcmp(t->children[i]->contents, "}") == 0 ||
+        strcmp(t->children[i]->tag, "regex") == 0) {
+      continue;
     }
-  } 
+    x = tval_add(x, tval_read(t->children[i]));
+  }
 
   return x;
 }
@@ -106,6 +123,7 @@ void tval_print(tval* v) {
     case TVAL_ERR: printf("%s", v->err); break;
     case TVAL_SYM: printf("%s", v->sym); break;
     case TVAL_SEXPR: tval_print_expr('(', ')', v); break;
+    case TVAL_QEXPR: tval_print_expr('{', '}', v); break;
   }
 }
 

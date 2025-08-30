@@ -11,19 +11,20 @@ int main(int argc, char** argv) {
   mpc_parser_t* Number = mpc_new("number");
   mpc_parser_t* Symbol = mpc_new("symbol");
   mpc_parser_t* Sexpr = mpc_new("sexpr");
+  mpc_parser_t* Qexpr = mpc_new("qexpr");
   mpc_parser_t* Expr = mpc_new("expr");
   mpc_parser_t* Torino = mpc_new("torino");
 
   mpca_lang(MPCA_LANG_DEFAULT,
       "									\
-      number	: /-?[0-9]+/ ;				\
-      symbol	: '+' | '-' | '*' | '/' | '%' |				\
-        \"add\" | \"sub\" | \"max\" | \"min\"; 				\
+      number	: /-?[0-9]+/ ;						\
+      symbol	: '+' | '-' | '*' | '/' ; 				\
       sexpr	: '(' <expr>* ')';					\
-      expr	: <number> | <symbol> | <sexpr> ;			\
+      qexpr	: '{' <expr>* '}';					\
+      expr	: <number> | <symbol> | <sexpr> | <qexpr> ;		\
       torino	: /^/ <expr>* /$/ ;               			\
       ",
-      Number, Symbol, Sexpr, Expr, Torino);
+      Number, Symbol, Sexpr, Qexpr, Expr, Torino);
 
   puts("Torino Version 0.0.0.0.1");
   puts("Press Ctrl+c to Exit\n");
@@ -47,7 +48,7 @@ int main(int argc, char** argv) {
     free(input);
   }
 
-  mpc_cleanup(4, Number, Symbol, Sexpr, Expr, Torino);
+  mpc_cleanup(6, Number, Symbol, Sexpr, Qexpr, Expr, Torino);
 
   return 0;
 }

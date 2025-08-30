@@ -1,5 +1,5 @@
 
-enum { TVAL_NUM, TVAL_ERR, TVAL_SYM, TVAL_SEXPR };
+enum { TVAL_NUM, TVAL_ERR, TVAL_SYM, TVAL_SEXPR, TVAL_QEXPR };
 enum { TERR_DIV_ZERO, TERR_BAD_OP, TERR_BAD_NUM };
 
 typedef struct tval {
