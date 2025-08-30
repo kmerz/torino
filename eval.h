@@ -1,5 +1,5 @@
 
-enum { TVAL_NUM, TVAL_ERR };
+enum { TVAL_NUM, TVAL_DNUM,TVAL_ERR };
 enum { TERR_DIV_ZERO, TERR_BAD_OP, TERR_BAD_NUM };
 
 typedef union {
