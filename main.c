@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
       Number, Symbol, Sexpr, Qexpr, Expr, Torino);
 
   puts("Torino Version 0.0.0.0.1");
-  puts("Press Ctrl+c to Exit\n");
+  puts("Press Ctrl+c or type 'exit' to Exit\n");
 
   tenv* e = tenv_new();
   tenv_add_builtins(e);
@@ -41,8 +41,13 @@ int main(int argc, char** argv) {
     if (mpc_parse("<stdin>", input, Torino, &r)) {
       tval* result = tval_eval(e, tval_read(r.output));
       tval_println(result);
-      tval_del(result);
       mpc_ast_delete(r.output);
+      if (result->type == TVAL_EXIT) {
+        tval_del(result);
+        free(input);
+        break;
+      }
+      tval_del(result);
     } else {
       mpc_err_print(r.error);
       mpc_err_delete(r.error);

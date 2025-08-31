@@ -4,7 +4,8 @@ struct tenv;
 typedef struct tval tval;
 typedef struct tenv tenv;
 
-enum { TVAL_NUM, TVAL_ERR, TVAL_SYM, TVAL_SEXPR, TVAL_QEXPR, TVAL_FUN };
+enum { TVAL_NUM, TVAL_ERR, TVAL_SYM, TVAL_SEXPR, TVAL_QEXPR, TVAL_FUN,
+  TVAL_EXIT };
 
 typedef tval*(*tbuiltin)(tenv*, tval*);
 

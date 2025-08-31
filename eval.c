@@ -18,6 +18,7 @@ char* ttype_name(int i) {
     case TVAL_SYM: return "Symbol";
     case TVAL_SEXPR: return "S-Expresion";
     case TVAL_QEXPR: return "Q-Expresion";
+    case TVAL_EXIT: return "Exit";
     default: return "Unknwon";
   }
 }
@@ -45,6 +46,12 @@ tval* tval_err(char* fmt, ...) {
 
   va_end(va);
 
+  return v;
+}
+
+tval* tval_exit(void) {
+  tval* v = malloc(sizeof(tval));
+  v->type = TVAL_EXIT;
   return v;
 }
 
@@ -87,6 +94,7 @@ tval* tval_fun(tbuiltin func) {
 
 void tval_del(tval *v) {
   switch(v->type) {
+    case TVAL_EXIT: break;
     case TVAL_NUM: break;
     case TVAL_FUN: break;
     case TVAL_ERR: free(v->err); break;
@@ -157,6 +165,7 @@ void tval_print_expr(char open, char close, tval *v) {
 
 void tval_print(tval* v) {
   switch (v->type) {
+    case TVAL_EXIT: printf("exit"); break;
     case TVAL_NUM: printf("%li", v->num); break;
     case TVAL_ERR: printf("%s", v->err); break;
     case TVAL_SYM: printf("%s", v->sym); break;
@@ -213,6 +222,8 @@ tval* tval_copy(tval* v) {
       for (int i = 0; i < v->count; i++) {
 	c->cell[i] = tval_copy(v->cell[i]);
       }
+      break;
+    case TVAL_EXIT:
       break;
   }
 
@@ -456,6 +467,8 @@ void tenv_add_builtins(tenv* e) {
   tenv_add_builtin(e, "-", builtin_sub);
   tenv_add_builtin(e, "*", builtin_mul);
   tenv_add_builtin(e, "/", builtin_div);
+
+  tenv_put(e, tval_sym("exit"), tval_exit());
 }
 
 tval* tval_sexpr_eval(tenv* e, tval *v) {
@@ -464,7 +477,7 @@ tval* tval_sexpr_eval(tenv* e, tval *v) {
   }
 
   for (int i = 0; i < v->count; i++) {
-    if (v->cell[i]->type == TVAL_ERR) {
+    if (v->cell[i]->type == TVAL_ERR || v->cell[i]->type == TVAL_EXIT) {
       return tval_take(v, i);
     }
   }
@@ -490,6 +503,9 @@ tval* tval_sexpr_eval(tenv* e, tval *v) {
 }
 
 tval* tval_eval(tenv* e, tval* v) {
+  if (v->type == TVAL_EXIT) {
+    return v;
+  }
   if (v->type == TVAL_SYM) {
     tval* x = tenv_get(e, v);
     tval_del(v);
