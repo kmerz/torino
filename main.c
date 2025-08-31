@@ -18,7 +18,7 @@ int main(int argc, char** argv) {
   mpca_lang(MPCA_LANG_DEFAULT,
       "									\
       number	: /-?[0-9]+/ ;						\
-      symbol	: '+' | '-' | '*' | '/' ; 				\
+      symbol	: /[a-zA-Z0-9_+\\-*\\/\\\\=<>!&]+/ ;			\
       sexpr	: '(' <expr>* ')';					\
       qexpr	: '{' <expr>* '}';					\
       expr	: <number> | <symbol> | <sexpr> | <qexpr> ;		\
@@ -29,6 +29,9 @@ int main(int argc, char** argv) {
   puts("Torino Version 0.0.0.0.1");
   puts("Press Ctrl+c to Exit\n");
 
+  tenv* e = tenv_new();
+  tenv_add_builtins(e);
+
   while(1) {
     char* input = readline("torino> ");
 
@@ -36,7 +39,7 @@ int main(int argc, char** argv) {
 
     mpc_result_t r;
     if (mpc_parse("<stdin>", input, Torino, &r)) {
-      tval* result = tval_eval(tval_read(r.output));
+      tval* result = tval_eval(e, tval_read(r.output));
       tval_println(result);
       tval_del(result);
       mpc_ast_delete(r.output);
@@ -47,6 +50,8 @@ int main(int argc, char** argv) {
 
     free(input);
   }
+
+  tenv_del(e);
 
   mpc_cleanup(6, Number, Symbol, Sexpr, Qexpr, Expr, Torino);
 
