@@ -3,8 +3,24 @@
 #include "mpc.h"
 #include "eval.h"
 
-#define TASSERT(args, cond, err) \
-  if(!cond) { tval_del(args); return tval_err(err); }
+#define TASSERT(args, cond, fmt, ...) \
+  if (!(cond)) { \
+    tval* err = tval_err(fmt, ##__VA_ARGS__); \
+    tval_del(args); \
+    return err; \
+  }
+
+char* ttype_name(int i) {
+  switch(i) {
+    case TVAL_NUM: return "Number";
+    case TVAL_ERR: return "Error";
+    case TVAL_FUN: return "Function";
+    case TVAL_SYM: return "Symbol";
+    case TVAL_SEXPR: return "S-Expresion";
+    case TVAL_QEXPR: return "Q-Expresion";
+    default: return "Unknwon";
+  }
+}
 
 tval* tval_num(long x) {
   tval* v = malloc(sizeof(tval));
@@ -14,13 +30,21 @@ tval* tval_num(long x) {
   return v;
 }
 
-tval* tval_err(char* msg) {
+tval* tval_err(char* fmt, ...) {
   tval* v = malloc(sizeof(tval));
-  v->count = 0;
   v->type = TVAL_ERR;
-  size_t len = strlen(msg) + 1;
-  v->err = malloc(len);
-  strlcpy(v->err, msg, len);
+
+  va_list va;
+  va_start(va, fmt);
+
+  v->err = malloc(512);
+
+  vsnprintf(v->err, 511, fmt, va);
+
+  v->err = realloc(v->err, strlen(v->err) + 1);
+
+  va_end(va);
+
   return v;
 }
 
@@ -68,7 +92,7 @@ void tval_del(tval *v) {
     case TVAL_ERR: free(v->err); break;
     case TVAL_SYM: free(v->sym); break;
     case TVAL_QEXPR:
-    case TVAL_SEXPR: 
+    case TVAL_SEXPR:
       for (int i = 0; i < v->count; i++) {
 	tval_del(v->cell[i]);
       }
@@ -200,7 +224,7 @@ tval* tval_take(tval* v, int i) {
   tval_del(v);
 
   return x;
-} 
+}
 
 tenv* tenv_new(void) {
   tenv* e = malloc(sizeof(tenv));
@@ -232,7 +256,7 @@ tval* tenv_get(tenv* e, tval* k) {
     }
   }
 
-  return tval_err("Unbound symbol!");
+  return tval_err("Unbound symbol '%s'!", k->sym);
 }
 
 void tenv_put(tenv* e, tval* k, tval* v) {
@@ -255,11 +279,10 @@ void tenv_put(tenv* e, tval* k, tval* v) {
 
 tval* builtin_op(tenv* e, tval* a, char* op) {
   for (int i = 0; i < a->count; i++) {
-    if (a->cell[i]->type != TVAL_NUM) {
-      tval_del(a);
-      return tval_err("Cannot operat on non numeral value!");
-    }
-  } 
+    TASSERT(a, a->cell[i]->type == TVAL_NUM,
+      "Cannot operat on non numeral value! Got %s.",
+      ttype_name(a->cell[i]->type));
+  }
 
   tval* x = tval_pop(a, 0);
 
@@ -316,10 +339,39 @@ void tenv_add_builtin(tenv* e, char* sym, tbuiltin func) {
   tval_del(v);
 }
 
-tval* builtin_head(tenv* e, tval* a) {
-  TASSERT(a, a->count == 1, "Function 'head' passed to many arguments.");
+tval* builtin_def(tenv* e, tval* a) {
   TASSERT(a, a->cell[0]->type == TVAL_QEXPR,
-      "Function 'head' passed invalid argument type.");
+      "Function 'def' passed incorrect type "
+      "Expected %s, got %s.", ttype_name(TVAL_QEXPR),
+      ttype_name(a->cell[0]->type));
+
+  tval* syms = a->cell[0];
+
+  for (int i = 0; i < syms->count; i++) {
+    TASSERT(a, syms->cell[i]->type == TVAL_SYM,
+      "Function 'def' cannot define non symbol. Got %s.",
+      ttype_name(syms->cell[i]->type));
+  }
+
+  TASSERT(a, syms->count == a->count -1,
+      "Function 'def' cannot define incorrect number of symbols to values");
+
+  for (int i = 0; i < syms->count; i++) {
+    tenv_put(e, syms->cell[i], a->cell[i+1]);
+  }
+
+  tval_del(a);
+
+  return tval_sexpr();
+}
+
+tval* builtin_head(tenv* e, tval* a) {
+  TASSERT(a, a->count == 1, "Function 'head' passed to many arguments."
+      "Expected %d, got %d", 1, a->count);
+  TASSERT(a, a->cell[0]->type == TVAL_QEXPR,
+      "Function 'head' passed invalid argument type."
+      "Expected %s, got %s", ttype_name(TVAL_QEXPR),
+      ttype_name(a->cell[0]->type));
   TASSERT(a, a->cell[0]->count != 0, "Function 'head' passed {}");
 
   tval* v = tval_take(a, 0);
@@ -331,9 +383,12 @@ tval* builtin_head(tenv* e, tval* a) {
 }
 
 tval* builtin_tail(tenv* e, tval* a) {
-  TASSERT(a, a->count == 1, "Function 'tail' passed to many arguments.");
+  TASSERT(a, a->count == 1, "Function 'tail' passed to many arguments."
+      "Expected %d, got %d", 1, a->count);
   TASSERT(a, a->cell[0]->type == TVAL_QEXPR,
-      "Function 'tail' passed invalid argument type.");
+      "Function 'tail' passed invalid argument type. "
+      "Expected %s, got %s.", ttype_name(TVAL_QEXPR),
+      ttype_name(a->cell[0]->type));
   TASSERT(a, a->cell[0]->count != 0, "Function 'tail' passed {}");
 
   tval* v = tval_take(a, 0);
@@ -348,9 +403,12 @@ tval* builtin_list(tenv* e, tval* a) {
 }
 
 tval* builtin_eval(tenv* e, tval* a) {
-  TASSERT(a, a->count == 1, "Function 'eval' passed to many arguments.");
+  TASSERT(a, a->count == 1, "Function 'eval' passed to many arguments."
+      "Expected %d, got %d", 1, a->count);
   TASSERT(a, a->cell[0]->type == TVAL_QEXPR,
-      "Function 'eval' passed invalid argument type.");
+      "Function 'eval' passed invalid argument type. "
+      "Expected %s, got %s", ttype_name(TVAL_QEXPR),
+      ttype_name(a->cell[0]->type));
 
   tval* x = tval_take(a, 0);
   x->type = TVAL_SEXPR;
@@ -369,8 +427,10 @@ tval* tval_join(tval* x, tval* y) {
 
 tval* builtin_join(tenv* e, tval* a) {
   for(int i; i < a->count; i++) {
-    TASSERT(a, a->cell[i]->type == TVAL_QEXPR,
-      "Function 'join', passed invalid argument type.");
+  TASSERT(a, a->cell[i]->type == TVAL_QEXPR,
+      "Function 'eval' passed invalid argument type. "
+      "Expected %s, got %s", ttype_name(TVAL_QEXPR),
+      ttype_name(a->cell[i]->type));
   }
 
   tval* x = tval_pop(a, 0);
@@ -389,6 +449,8 @@ void tenv_add_builtins(tenv* e) {
   tenv_add_builtin(e, "join", builtin_join);
   tenv_add_builtin(e, "list", builtin_list);
   tenv_add_builtin(e, "eval", builtin_eval);
+
+  tenv_add_builtin(e, "def", builtin_def);
 
   tenv_add_builtin(e, "+", builtin_add);
   tenv_add_builtin(e, "-", builtin_sub);
