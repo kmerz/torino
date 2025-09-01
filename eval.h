@@ -29,6 +29,8 @@ struct tval {
 };
 
 struct tenv {
+  tenv* par;
+
   int count;
   char** syms;
   tval** vals;
@@ -39,7 +41,11 @@ void tval_print(tval*);
 tval* tval_read(mpc_ast_t*);
 void tval_del(tval*);
 tval* tval_eval(tenv*, tval*);
+tval* tval_copy(tval*);
 
 tenv* tenv_new(void);
 void tenv_del(tenv*);
 void tenv_add_builtins(tenv*);
+tenv* tenv_copy(tenv*);
+
+tval* builtin_eval(tenv*, tval*);
