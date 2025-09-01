@@ -12,12 +12,18 @@ typedef tval*(*tbuiltin)(tenv*, tval*);
 struct tval {
   int type;
 
+  /* basic */
   long num;
   char* sym;
   char* err;
 
-  tbuiltin fun;
+  /* function */
+  tbuiltin builtin;
+  tenv *env;
+  tval* formals;
+  tval* body; 
  
+  /* Expressions */
   int count;
   struct tval** cell;
 };

@@ -88,7 +88,7 @@ tval* tval_qexpr(void) {
 tval* tval_fun(tbuiltin func) {
   tval* v = malloc(sizeof(tval));
   v->type = TVAL_FUN;
-  v->fun = func;
+  v->builtin = func;
   return v;
 }
 
@@ -203,7 +203,7 @@ tval* tval_copy(tval* v) {
       c->num = v->num;
       break;
     case TVAL_FUN:
-      c->fun = v->fun;
+      c->builtin = v->builtin;
       break;
     case TVAL_ERR:
       len = strlen(v->err) + 1;
@@ -497,7 +497,7 @@ tval* tval_sexpr_eval(tenv* e, tval *v) {
     return tval_err("first element is not a function!");
   }
 
-  tval* result = first->fun(e, v);
+  tval* result = first->builtin(e, v);
   free(first);
   return result;
 }
