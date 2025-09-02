@@ -81,6 +81,41 @@ tval* tval_call(tenv* e, tval* f, tval* a) {
   }
 }
 
+tval* builtin_ord(tenv* e, tval* a, char* op) {
+  TASSERT_NUM("\\", a, 2);
+  for (int i = 0; i < a->count; i++) {
+    TASSERT(a, a->cell[i]->type == TVAL_NUM,
+      "Cannot operat on non numeral value! Got %s.",
+      ttype_name(a->cell[i]->type));
+  }
+
+  tval* l = tval_pop(a, 0);
+  tval* r = tval_pop(a, 0);
+
+  if (strcmp(op, "<") == 0) { return tval_num(l->num < r->num); }
+  if (strcmp(op, "<=") == 0) { return tval_num(l->num <= r->num); }
+  if (strcmp(op, ">") == 0) { return tval_num(l->num > r->num); }
+  if (strcmp(op, ">=") == 0) { return tval_num(l->num >= r->num); }
+
+  return tval_err("Unknown ordering operator '%s'", op);
+}
+
+tval* builtin_less(tenv* e, tval* a) {
+  return builtin_ord(e, a, "<");
+}
+
+tval* builtin_less_equal(tenv* e, tval* a) {
+  return builtin_ord(e, a, "<=");
+}
+
+tval* builtin_greater(tenv* e, tval* a) {
+  return builtin_ord(e, a, ">");
+}
+
+tval* builtin_greater_equal(tenv* e, tval* a) {
+  return builtin_ord(e, a, ">=");
+}
+
 tval* builtin_op(tenv* e, tval* a, char* op) {
   for (int i = 0; i < a->count; i++) {
     TASSERT(a, a->cell[i]->type == TVAL_NUM,
@@ -295,6 +330,11 @@ void tenv_add_builtins(tenv* e) {
   tenv_add_builtin(e, "-", builtin_sub);
   tenv_add_builtin(e, "*", builtin_mul);
   tenv_add_builtin(e, "/", builtin_div);
+
+  tenv_add_builtin(e, "<", builtin_less);
+  tenv_add_builtin(e, "<=", builtin_less_equal);
+  tenv_add_builtin(e, ">", builtin_greater);
+  tenv_add_builtin(e, ">=", builtin_greater_equal);
 
   tenv_put(e, tval_sym("exit"), tval_exit());
 }
