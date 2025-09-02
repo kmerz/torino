@@ -379,6 +379,20 @@ tval* tval_call(tenv* e, tval* f, tval* a) {
     }
 
     tval* sym = tval_pop(f->formals, 0);
+    if (strcmp(sym->sym, "&") == 0) {
+      if (f->formals->count != 1) {
+	tval_del(a);
+	return tval_err("Function format invalid. "
+	    "Symbol '&' not followed by single symbol.");
+      }
+
+      tval* nsym = tval_pop(f->formals, 0);
+      tenv_put(f->env, nsym, builtin_list(e, a));
+      tval_del(sym);
+      tval_del(nsym);
+      break;
+    }
+
     tval* val = tval_pop(a, 0);
 
     tenv_put(f->env, sym, val);
@@ -388,6 +402,23 @@ tval* tval_call(tenv* e, tval* f, tval* a) {
   }
 
   tval_del(a);
+
+  if (f->formals->count > 0 &&
+      strcmp(f->formals->cell[0]->sym, "&") == 0) {
+
+    if (f->formals->count != 2) {
+      return tval_err("Function format invalid. "
+	  "Symbol '&' not followed by single symbol.");
+    }
+
+    tval_del(tval_pop(f->formals, 0));
+    tval* sym = tval_pop(f->formals, 0);
+    tval* val = tval_qexpr();
+    tenv_put(f->env, sym, val);
+
+    tval_del(sym);
+    tval_del(val);
+  }
 
   if (f->formals->count == 0) {
     f->env->par = e;
