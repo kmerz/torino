@@ -81,8 +81,49 @@ tval* tval_call(tenv* e, tval* f, tval* a) {
   }
 }
 
+tval* builtin_if(tenv* e, tval* a) {
+  TASSERT_NUM("if", a, 3);
+  TASSERT_TYPE("if", a, 0, TVAL_SEXPR);
+  TASSERT_TYPE("if", a, 1, TVAL_QEXPR);
+  TASSERT_TYPE("if", a, 2, TVAL_QEXPR);
+
+  tval* if_expr = tval_pop(a, 0);
+  tval* result = tval_if(if_expr, a);
+  return builtin_eval(e, tval_add(tval_sexpr(), result));
+}
+
+tval* builtin_cmp(tenv* e, tval* a, char* op) {
+  TASSERT(a, a->count >= 2,
+      "For comparision we need more then one argument Got %d.",
+      a->count);
+
+  tval* result;
+  tval* left = tval_pop(a, 0);
+  while(a->count) {
+    tval* right = tval_pop(a, 0);
+    result = tval_eq(left, right);  
+    if (result->boolean == TVAL_FALSE) {
+      tval_del(right);
+      tval_del(left);
+      if (strcmp(op, "!=") == 0) {
+	result->boolean = TVAL_TRUE;
+      }
+      return result;
+    }
+    tval* old_left = left;
+    left = right;
+    tval_del(old_left);
+  }
+  tval_del(left);
+
+  if (strcmp(op, "!=") == 0) {
+    result->boolean = TVAL_FALSE;
+  }
+  return result;
+}
+
 tval* builtin_ord(tenv* e, tval* a, char* op) {
-  TASSERT_NUM("\\", a, 2);
+  TASSERT_NUM(op, a, 2);
   for (int i = 0; i < a->count; i++) {
     TASSERT(a, a->cell[i]->type == TVAL_NUM,
       "Cannot operat on non numeral value! Got %s.",
@@ -114,6 +155,14 @@ tval* builtin_greater(tenv* e, tval* a) {
 
 tval* builtin_greater_equal(tenv* e, tval* a) {
   return builtin_ord(e, a, ">=");
+}
+
+tval* builtin_equal(tenv* e, tval* a) {
+  return builtin_cmp(e, a, "==");
+}
+
+tval* builtin_unequal(tenv* e, tval* a) {
+  return builtin_cmp(e, a, "!=");
 }
 
 tval* builtin_op(tenv* e, tval* a, char* op) {
@@ -335,6 +384,11 @@ void tenv_add_builtins(tenv* e) {
   tenv_add_builtin(e, "<=", builtin_less_equal);
   tenv_add_builtin(e, ">", builtin_greater);
   tenv_add_builtin(e, ">=", builtin_greater_equal);
+
+  tenv_add_builtin(e, "==", builtin_equal);
+  tenv_add_builtin(e, "!=", builtin_unequal);
+  
+  tenv_add_builtin(e, "if", builtin_if);
 
   tenv_put(e, tval_sym("exit"), tval_exit());
 }

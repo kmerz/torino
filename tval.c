@@ -67,6 +67,9 @@ tval* tval_qexpr(void) {
 
 tval* tval_fun(tbuiltin func) {
   tval* v = malloc(sizeof(tval));
+  v->cell = NULL;
+  v->sym = NULL;
+  v->err = NULL;
   v->type = TVAL_FUN;
   v->builtin = func;
   return v;
@@ -76,16 +79,80 @@ tval* tval_lambda(tval* formals, tval* body) {
   tval* v = malloc(sizeof(tval));
   v->type = TVAL_FUN;
   v->builtin = NULL;
-  
+
   v->env = tenv_new();
 
   v->formals = formals;
   v->body = body;
 }
 
+tval* tval_bool(int val) {
+  tval* v = malloc(sizeof(tval));
+  v->type = TVAL_BOOL;
+  v->boolean = val;
+  v->num = 0;
+}
+
+tval* tval_eq(tval* l, tval* r) {
+  if (r->type != l->type) {
+    return tval_bool(TVAL_FALSE);;
+  }
+
+  switch(r->type) {
+    case TVAL_BOOL: return r->boolean == l->boolean ? tval_bool(TVAL_TRUE) : tval_bool(TVAL_FALSE);
+    case TVAL_NUM: return r->num == l->num ? tval_bool(TVAL_TRUE) : tval_bool(TVAL_FALSE);
+    case TVAL_SYM: return strcmp(r->sym, l->sym) == 0 ? tval_bool(TVAL_TRUE) : tval_bool(TVAL_FALSE);
+    case TVAL_ERR: return strcmp(r->err, l->err) == 0 ? tval_bool(TVAL_TRUE) : tval_bool(TVAL_FALSE);
+    case TVAL_QEXPR:
+    case TVAL_SEXPR:
+      if (l->count != r->count) {
+	return tval_bool(TVAL_FALSE);
+      }
+      for (int i = 0; i < l->count; i++) {
+	if (!tval_eq(l->cell[i], r->cell[i])) {
+	  return tval_bool(TVAL_FALSE);
+	}
+      }
+      return tval_bool(TVAL_TRUE);
+    case TVAL_FUN:
+      if (l->formals->count != r->formals->count) {
+	return tval_bool(TVAL_FALSE);
+      }
+      if (l->body->count != r->body->count) {
+	return tval_bool(TVAL_FALSE);
+      }
+      for (int i = 0; i < l->formals->count; i++) {
+	if (!tval_eq(l->formals->cell[i], r->formals->cell[i])) {
+	  return tval_bool(TVAL_FALSE);
+	}
+      }
+      for (int i = 0; i < l->body->count; i++) {
+	if (!tval_eq(l->body->cell[i], r->body->cell[i])) {
+	  return tval_bool(TVAL_FALSE);
+	}
+      }
+      return tval_bool(TVAL_TRUE);
+    case TVAL_EXIT: return tval_bool(TVAL_TRUE);
+  }
+}
+
+tval* tval_if(tval *result, tval* a) {
+  switch(result->type) {
+    case TVAL_BOOL: return result->boolean == TVAL_TRUE ? tval_take(a, 0) : tval_take(a, 1);
+    case TVAL_NUM: return result->num > 0 ? tval_take(a, 0) : tval_take(a, 1);
+    case TVAL_EXIT:
+    case TVAL_ERR: return result;
+    case TVAL_SEXPR:
+    case TVAL_QEXPR:
+    case TVAL_FUN: return tval_take(a, 0);
+  } 
+  return tval_take(a, 1);
+}
+
 void tval_del(tval *v) {
   switch(v->type) {
     case TVAL_EXIT: break;
+    case TVAL_BOOL: break;
     case TVAL_NUM: break;
     case TVAL_FUN: 
       if(!v->builtin) {
@@ -114,6 +181,14 @@ tval* tval_read_num(mpc_ast_t* t) {
     tval_num(x) : tval_err("invalid number");
 }
 
+tval* tval_read_bool(mpc_ast_t* t) {
+  if (strcmp(t->contents, "true") == 0) {
+    return tval_bool(TVAL_TRUE);
+  } else {
+    return tval_bool(TVAL_FALSE);
+  }
+}
+
 tval* tval_add(tval* v, tval* x) {
   v->count++;
   v->cell = realloc(v->cell, sizeof(tval*) * v->count);
@@ -122,6 +197,7 @@ tval* tval_add(tval* v, tval* x) {
 }
 
 tval* tval_read(mpc_ast_t* t) {
+  if (strstr(t->tag, "boolean")) { return tval_read_bool(t); }
   if (strstr(t->tag, "number")) { return tval_read_num(t); }
   if (strstr(t->tag, "symbol")) { return tval_sym(t->contents); }
 
@@ -163,6 +239,7 @@ void tval_print_expr(char open, char close, tval *v) {
 void tval_print(tval* v) {
   switch (v->type) {
     case TVAL_EXIT: printf("exit"); break;
+    case TVAL_BOOL: v->boolean ? printf("true") : printf("false"); break;
     case TVAL_NUM: printf("%li", v->num); break;
     case TVAL_ERR: printf("%s", v->err); break;
     case TVAL_SYM: printf("%s", v->sym); break;
@@ -203,6 +280,9 @@ tval* tval_copy(tval* v) {
   size_t len;
 
   switch(v->type) {
+    case TVAL_BOOL:
+      c->boolean = v->boolean;
+      break;
     case TVAL_NUM:
       c->num = v->num;
       break;

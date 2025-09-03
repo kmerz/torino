@@ -6,8 +6,10 @@ struct tenv;
 typedef struct tval tval;
 typedef struct tenv tenv;
 
+enum { TVAL_FALSE, TVAL_TRUE };
+
 enum { TVAL_NUM, TVAL_ERR, TVAL_SYM, TVAL_SEXPR, TVAL_QEXPR, TVAL_FUN,
-  TVAL_EXIT };
+  TVAL_EXIT, TVAL_BOOL };
 
 typedef tval*(*tbuiltin)(tenv*, tval*);
 
@@ -18,6 +20,7 @@ struct tval {
   long num;
   char* sym;
   char* err;
+  int boolean;
 
   /* function */
   tbuiltin builtin;
@@ -45,6 +48,8 @@ tval* tval_read(mpc_ast_t*);
 tval* tval_eval(tenv*, tval*);
 void tval_del(tval*);
 tval* tval_add(tval*, tval*);
+tval* tval_eq(tval*, tval*);
+tval* tval_if(tval*, tval*);
 
 tval* tval_copy(tval*);
 tval* tval_pop(tval*, int);
@@ -58,6 +63,7 @@ tval* tval_sexpr(void);
 tval* tval_qexpr(void);
 tval* tval_fun(tbuiltin fun);
 tval* tval_lambda(tval* formals, tval* body);
+tval* tval_bool(int);
 
 tval* tval_read_num(mpc_ast_t*);
 

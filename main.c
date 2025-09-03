@@ -8,6 +8,7 @@
 #include "eval.h"
 
 int main(int argc, char** argv) {
+  mpc_parser_t* Boolean = mpc_new("boolean");
   mpc_parser_t* Number = mpc_new("number");
   mpc_parser_t* Symbol = mpc_new("symbol");
   mpc_parser_t* Sexpr = mpc_new("sexpr");
@@ -17,14 +18,15 @@ int main(int argc, char** argv) {
 
   mpca_lang(MPCA_LANG_DEFAULT,
       "									\
+      boolean	: \"true\" | \"false\";					\
       number	: /-?[0-9]+/ ;						\
       symbol	: /[a-zA-Z0-9_+\\-*\\/\\\\=<>!&]+/ ;			\
       sexpr	: '(' <expr>* ')';					\
       qexpr	: '{' <expr>* '}';					\
-      expr	: <number> | <symbol> | <sexpr> | <qexpr> ;		\
+      expr	: <boolean> | <number> | <symbol> | <sexpr> | <qexpr>;	\
       torino	: /^/ <expr>* /$/ ;               			\
       ",
-      Number, Symbol, Sexpr, Qexpr, Expr, Torino);
+      Boolean, Number, Symbol, Sexpr, Qexpr, Expr, Torino);
 
   puts("Torino Version 0.0.0.0.1");
   puts("Press Ctrl+c or type 'exit' to Exit\n");
@@ -58,7 +60,7 @@ int main(int argc, char** argv) {
 
   tenv_del(e);
 
-  mpc_cleanup(6, Number, Symbol, Sexpr, Qexpr, Expr, Torino);
+  mpc_cleanup(7, Boolean, Number, Symbol, Sexpr, Qexpr, Expr, Torino);
 
   return 0;
 }
