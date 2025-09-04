@@ -127,8 +127,8 @@ tval* builtin_ord(tenv* e, tval* a, char* op) {
   TASSERT_NUM(op, a, 2);
   for (int i = 0; i < a->count; i++) {
     TASSERT(a, a->cell[i]->type == TVAL_NUM,
-      "Cannot operat on non numeral value! Got %s.",
-      ttype_name(a->cell[i]->type));
+	"Cannot operat on non numeral value! Got %s.",
+	ttype_name(a->cell[i]->type));
   }
 
   tval* l = tval_pop(a, 0);
@@ -169,8 +169,8 @@ tval* builtin_unequal(tenv* e, tval* a) {
 tval* builtin_op(tenv* e, tval* a, char* op) {
   for (int i = 0; i < a->count; i++) {
     TASSERT(a, a->cell[i]->type == TVAL_NUM,
-      "Cannot operat on non numeral value! Got %s.",
-      ttype_name(a->cell[i]->type));
+	"Cannot operat on non numeral value! Got %s.",
+	ttype_name(a->cell[i]->type));
   }
 
   tval* x = tval_pop(a, 0);
@@ -238,8 +238,8 @@ tval* builtin_var(tenv* e, tval* a, char* func) {
 
   for (int i = 0; i < syms->count; i++) {
     TASSERT(a, syms->cell[i]->type == TVAL_SYM,
-      "Function 'def' cannot define non symbol. Got %s.",
-      ttype_name(syms->cell[i]->type));
+	"Function 'def' cannot define non symbol. Got %s.",
+	ttype_name(syms->cell[i]->type));
   }
 
   TASSERT(a, syms->count == a->count -1,
@@ -422,10 +422,10 @@ tval* tval_join(tval* x, tval* y) {
 
 tval* builtin_join(tenv* e, tval* a) {
   for(int i; i < a->count; i++) {
-  TASSERT(a, a->cell[i]->type == TVAL_QEXPR,
-      "Function 'eval' passed invalid argument type. "
-      "Expected %s, got %s", ttype_name(TVAL_QEXPR),
-      ttype_name(a->cell[i]->type));
+    TASSERT(a, a->cell[i]->type == TVAL_QEXPR,
+	"Function 'eval' passed invalid argument type. "
+	"Expected %s, got %s", ttype_name(TVAL_QEXPR),
+	ttype_name(a->cell[i]->type));
   }
 
   tval* x = tval_pop(a, 0);
@@ -462,7 +462,7 @@ void tenv_add_builtins(tenv* e) {
 
   tenv_add_builtin(e, "==", builtin_equal);
   tenv_add_builtin(e, "!=", builtin_unequal);
-  
+
   tenv_add_builtin(e, "if", builtin_if);
   tenv_add_builtin(e, "load", builtin_load);
   tenv_add_builtin(e, "print", builtin_print);
