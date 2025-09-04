@@ -267,6 +267,25 @@ tval* builtin_put(tenv* e, tval* a) {
   return builtin_var(e, a, "=");
 }
 
+tval* builtin_fun(tenv* e, tval* a) {
+  TASSERT_NUM("fun", a, 2);
+  TASSERT_TYPE("fun", a, 0, TVAL_QEXPR);
+  TASSERT_TYPE("fun", a, 1, TVAL_QEXPR);
+
+  for (int i = 0; i < a->cell[0]->count; i++) {
+    TASSERT(a, a->cell[0]->cell[i]->type == TVAL_SYM,
+	"'fun': Only can only define symbols, got %s.",
+	ttype_name(a->cell[0]->cell[i]->type));
+  }
+
+  tval* formals = tval_pop(a, 0);
+  tval* f_sym = tval_pop(formals, 0);
+  tval* body = tval_pop(a, 0);
+  tval* lambda = tval_lambda(formals, body);
+  tenv_def(e, f_sym, lambda);
+  return lambda;
+
+}
 
 tval* builtin_lambda(tenv* e, tval* a) {
   TASSERT_NUM("\\", a, 2);
@@ -374,6 +393,7 @@ void tenv_add_builtins(tenv* e) {
   tenv_add_builtin(e, "def", builtin_def);
   tenv_add_builtin(e, "=", builtin_put);
   tenv_add_builtin(e, "\\", builtin_lambda);
+  tenv_add_builtin(e, "fun", builtin_fun);
 
   tenv_add_builtin(e, "+", builtin_add);
   tenv_add_builtin(e, "-", builtin_sub);
