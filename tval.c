@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "mpc.h"
 #include "eval.h"
 
 tval* tval_num(long x) {
@@ -42,6 +43,14 @@ tval* tval_sym(char* sym) {
   size_t len = strlen(sym) + 1;
   v->sym = malloc(len);
   strncpy(v->sym, sym, len);
+  return v;
+}
+
+tval* tval_str(char* str) {
+  tval* v = malloc(sizeof(tval));
+  v->type = TVAL_STR;
+  v->str = malloc(strlen(str) + 1);
+  strcpy(v->str, str);
   return v;
 }
 
@@ -99,10 +108,16 @@ tval* tval_eq(tval* l, tval* r) {
   }
 
   switch(r->type) {
-    case TVAL_BOOL: return r->boolean == l->boolean ? tval_bool(TVAL_TRUE) : tval_bool(TVAL_FALSE);
-    case TVAL_NUM: return r->num == l->num ? tval_bool(TVAL_TRUE) : tval_bool(TVAL_FALSE);
-    case TVAL_SYM: return strcmp(r->sym, l->sym) == 0 ? tval_bool(TVAL_TRUE) : tval_bool(TVAL_FALSE);
-    case TVAL_ERR: return strcmp(r->err, l->err) == 0 ? tval_bool(TVAL_TRUE) : tval_bool(TVAL_FALSE);
+    case TVAL_BOOL: return r->boolean == l->boolean ?
+      tval_bool(TVAL_TRUE) : tval_bool(TVAL_FALSE);
+    case TVAL_NUM: return r->num == l->num ?
+      tval_bool(TVAL_TRUE) : tval_bool(TVAL_FALSE);
+    case TVAL_SYM: return strcmp(r->sym, l->sym) == 0 ?
+      tval_bool(TVAL_TRUE) : tval_bool(TVAL_FALSE);
+    case TVAL_STR: return strcmp(r->str, l->str) == 0 ?
+      tval_bool(TVAL_TRUE) : tval_bool(TVAL_FALSE);
+    case TVAL_ERR: return strcmp(r->err, l->err) == 0 ?
+      tval_bool(TVAL_TRUE) : tval_bool(TVAL_FALSE);
     case TVAL_QEXPR:
     case TVAL_SEXPR:
       if (l->count != r->count) {
@@ -163,6 +178,7 @@ void tval_del(tval *v) {
       break;
     case TVAL_ERR: free(v->err); break;
     case TVAL_SYM: free(v->sym); break;
+    case TVAL_STR: free(v->str); break;
     case TVAL_QEXPR:
     case TVAL_SEXPR:
       for (int i = 0; i < v->count; i++) {
@@ -189,6 +205,18 @@ tval* tval_read_bool(mpc_ast_t* t) {
   }
 }
 
+tval* tval_read_str(char* str) {
+  str[strlen(str) - 1] = '\0';
+  char* unescaped = malloc(strlen(str+1)+1);
+  strcpy(unescaped, str+1);
+
+  unescaped = mpcf_unescape(unescaped);
+  tval* tstr = tval_str(unescaped);
+  
+  free(unescaped);
+  return tstr;
+}
+
 tval* tval_add(tval* v, tval* x) {
   v->count++;
   v->cell = realloc(v->cell, sizeof(tval*) * v->count);
@@ -200,6 +228,7 @@ tval* tval_read(mpc_ast_t* t) {
   if (strstr(t->tag, "boolean")) { return tval_read_bool(t); }
   if (strstr(t->tag, "number")) { return tval_read_num(t); }
   if (strstr(t->tag, "symbol")) { return tval_sym(t->contents); }
+  if (strstr(t->tag, "string")) { return tval_read_str(t->contents); }
 
   tval* x = NULL;
   if (strcmp(t->tag, ">") == 0 || strstr(t->tag, "sexpr")) {
@@ -214,6 +243,7 @@ tval* tval_read(mpc_ast_t* t) {
         strcmp(t->children[i]->contents, ")") == 0 ||
         strcmp(t->children[i]->contents, "{") == 0 ||
         strcmp(t->children[i]->contents, "}") == 0 ||
+	strstr(t->children[i]->tag, "comment") ||
         strcmp(t->children[i]->tag, "regex") == 0) {
       continue;
     }
@@ -221,6 +251,14 @@ tval* tval_read(mpc_ast_t* t) {
   }
 
   return x;
+}
+
+void tval_print_str(tval* v) {
+  char* escaped = malloc(strlen(v->str) + 1);
+  strcpy(escaped, v->str);
+  escaped = mpcf_escape(escaped);
+  printf("\"%s\"", escaped);
+  free(escaped);
 }
 
 void tval_print_expr(char open, char close, tval *v) {
@@ -242,6 +280,7 @@ void tval_print(tval* v) {
     case TVAL_BOOL: v->boolean ? printf("true") : printf("false"); break;
     case TVAL_NUM: printf("%li", v->num); break;
     case TVAL_ERR: printf("%s", v->err); break;
+    case TVAL_STR: tval_print_str(v); break;
     case TVAL_SYM: printf("%s", v->sym); break;
     case TVAL_FUN: 
       if(v->builtin) {
@@ -305,6 +344,11 @@ tval* tval_copy(tval* v) {
       len = strlen(v->sym) + 1;
       c->sym = malloc(len);
       strncpy(c->sym, v->sym, len);
+      break;
+    case TVAL_STR:
+      len = strlen(v->str) + 1;
+      c->str = malloc(len);
+      strncpy(c->str, v->str, len);
       break;
     case TVAL_SEXPR:
     case TVAL_QEXPR:

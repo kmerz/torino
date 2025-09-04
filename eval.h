@@ -1,5 +1,12 @@
 #include "mpc.h"
 
+#ifndef EVAL_H
+#define EVAL_H
+
+extern mpc_parser_t* Torino; 
+
+#endif
+
 struct tval;
 struct tenv;
 
@@ -9,7 +16,7 @@ typedef struct tenv tenv;
 enum { TVAL_FALSE, TVAL_TRUE };
 
 enum { TVAL_NUM, TVAL_ERR, TVAL_SYM, TVAL_SEXPR, TVAL_QEXPR, TVAL_FUN,
-  TVAL_EXIT, TVAL_BOOL };
+  TVAL_EXIT, TVAL_BOOL, TVAL_STR };
 
 typedef tval*(*tbuiltin)(tenv*, tval*);
 
@@ -20,6 +27,7 @@ struct tval {
   long num;
   char* sym;
   char* err;
+  char* str;
   int boolean;
 
   /* function */
@@ -56,12 +64,13 @@ tval* tval_pop(tval*, int);
 tval* tval_take(tval*, int);
 
 tval* tval_err(char *, ...);
-tval* tval_num(long x);
+tval* tval_num(long);
 tval* tval_exit(void);
-tval* tval_sym(char* sym);
+tval* tval_sym(char*);
+tval* tval_str(char*);
 tval* tval_sexpr(void);
 tval* tval_qexpr(void);
-tval* tval_fun(tbuiltin fun);
+tval* tval_fun(tbuiltin);
 tval* tval_lambda(tval* formals, tval* body);
 tval* tval_bool(int);
 
@@ -77,6 +86,7 @@ tval* tenv_get(tenv*, tval*);
 
 tval* builtin_eval(tenv*, tval*);
 tval* builtin_list(tenv*, tval*);
+tval* builtin_load(tenv*, tval*);
 
 #define TASSERT(args, cond, fmt, ...) \
   if (!(cond)) { \

@@ -9,6 +9,7 @@ char* ttype_name(int i) {
     case TVAL_ERR: return "Error";
     case TVAL_FUN: return "Function";
     case TVAL_SYM: return "Symbol";
+    case TVAL_STR: return "String";
     case TVAL_SEXPR: return "S-Expresion";
     case TVAL_QEXPR: return "Q-Expresion";
     case TVAL_EXIT: return "Exit";
@@ -342,6 +343,60 @@ tval* builtin_list(tenv* e, tval* a) {
   return a;
 }
 
+tval* builtin_load(tenv* e, tval* a) {
+  TASSERT_NUM("load", a, 1);
+  TASSERT_TYPE("load", a, 0, TVAL_STR);
+
+  mpc_result_t r;
+  if (mpc_parse_contents(a->cell[0]->str, Torino, &r)) {
+    tval* expr = tval_read(r.output);
+    mpc_ast_delete(r.output);
+
+    while(expr->count) {
+      tval* x = tval_eval(e, tval_pop(expr, 0));
+      if (x->type == TVAL_ERR) {
+	tval_println(x);
+      }
+      tval_del(x);
+    }
+
+    tval_del(expr);
+    tval_del(a);
+    return tval_sexpr();
+  } else {
+    char* err_msg = mpc_err_string(r.error);
+    mpc_err_delete(r.error);
+
+    tval* err = tval_err("Could not load Library %s", err_msg);
+    free(err_msg);
+    tval_del(a);
+
+    return err;
+  }
+}
+
+tval* builtin_print(tenv* e, tval* a) {
+  for (int i = 0; i < a->count; i++) {
+    tval_print(a->cell[i]);
+    putchar(' ');
+  }
+
+  putchar('\n');
+  tval_del(a);
+
+  return tval_sexpr();
+}
+
+tval* builtin_error(tenv* e, tval* a) {
+  TASSERT_NUM("error", a, 1);
+  TASSERT_TYPE("error", a, 0, TVAL_STR);
+
+  tval* err = tval_err(a->cell[0]->str);
+
+  tval_del(a);
+  return err;
+}
+
 tval* builtin_eval(tenv* e, tval* a) {
   TASSERT(a, a->count == 1, "Function 'eval' passed to many arguments."
       "Expected %d, got %d", 1, a->count);
@@ -409,6 +464,9 @@ void tenv_add_builtins(tenv* e) {
   tenv_add_builtin(e, "!=", builtin_unequal);
   
   tenv_add_builtin(e, "if", builtin_if);
+  tenv_add_builtin(e, "load", builtin_load);
+  tenv_add_builtin(e, "print", builtin_print);
+  tenv_add_builtin(e, "error", builtin_error);
 
   tenv_put(e, tval_sym("exit"), tval_exit());
 }
